@@ -1,0 +1,24 @@
+# MAW runtime state
+.maw-lead-state.json
+maw-wt-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Python (for test fixture)
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
