@@ -6,12 +6,13 @@ Orchestrate parallel Claude Code agents with autonomous execution, git worktree 
 
 MAW Native coordinates a team of specialized AI agents to improve your codebase in parallel:
 
-1. **Lead** analyzes your codebase and creates a task breakdown
-2. You review and approve the plan
-3. Lead spawns agents — each working in its own git worktree (no conflicts)
-4. Agents implement, test, review, and fix autonomously
-5. Lead merges everything back, runs tests, reports results
-6. You decide: deploy, iterate, or add more
+1. **You** invoke the MAW skill — Claude becomes the lead orchestrator
+2. Lead analyzes your codebase and creates a task breakdown
+3. You review and approve the plan
+4. Lead spawns agents — each working in its own git worktree (no conflicts)
+5. Agents implement, test, review, and fix autonomously
+6. Lead merges everything back, runs tests, reports results
+7. You decide: deploy, iterate, or add more
 
 ## Prerequisites
 
@@ -49,44 +50,38 @@ ln -s /path/to/maw-native ~/.claude/plugins/maw-native
 claude --dangerously-skip-permissions --teammate-mode tmux
 ```
 
-Then tell Claude what to do:
+Then invoke the skill:
 
 ```
-> Review this codebase for code quality issues and fix them
-> Launch agents to fix the security issues in src/auth/
-> Review and improve test coverage for this project
+> /maw-native:maw-orchestration
+> run maw on this codebase
+```
+
+Or with a specific goal:
+
+```
+> /maw-native:maw review and fix security issues in src/auth/
 ```
 
 ### What Happens
 
-1. **SETUP** — Lead checks for CLAUDE.md, detects review mode (standalone vs hybrid)
-2. **REVIEW** — Lead analyzes codebase, creates 3-5 tasks, presents to you for approval
-3. **LAUNCH** — After you approve: worktrees created, team spawned, tasks assigned
-4. **INTEGRATE** — Agents work autonomously → lead merges branches → runs tests
+1. **SETUP** — Lead reads codebase, runs baseline tests
+2. **REVIEW** — Lead analyzes and creates 3-5 tasks, presents to you for approval
+3. **LAUNCH** — After approval: worktrees created, agents spawned in parallel
+4. **INTEGRATE** — Lead merges branches sequentially, runs tests after each
 5. **DECIDE** — Lead recommends: deploy, iterate, or add features
 6. **LEARN** — Captures learnings to persistent memory
+7. **CLEANUP** — Team shutdown, worktree removal
 
-### Sequential Mode
+## Architecture
 
-For bandwidth-constrained environments or cost savings:
-
-```
-> Review this codebase and work through improvements one at a time
-```
-
-### Focused Mode
-
-Target specific areas:
-
-```
-> Launch agents to fix the security issues in src/auth/
-```
+The main Claude instance acts as the lead orchestrator — no separate "lead" subagent. This avoids nested agent spawning limitations. The skill/command loads the orchestration protocol directly into the current session.
 
 ## Agents
 
 | Agent | Role | Model |
 |-------|------|-------|
-| `maw-lead` | Orchestrator — plans, delegates, integrates | Opus |
+| _(main Claude)_ | Orchestrator — plans, delegates, integrates | Opus |
 | `maw-implementer` | Autonomous coder — implements tasks | Sonnet |
 | `maw-tester` | Test writer — validates implementations | Sonnet |
 | `maw-reviewer` | Quality gate — reviews code, approves/rejects | Sonnet |
@@ -94,7 +89,7 @@ Target specific areas:
 
 ## Git Worktree Isolation
 
-Each agent works in its own git worktree — a full working copy with its own branch. This means:
+Each implementation agent works in its own git worktree — a full working copy with its own branch:
 
 - Agents can edit the same file in parallel without conflicts
 - Tests run independently per worktree
@@ -111,20 +106,26 @@ If a session crashes (laptop sleep, tmux disconnect):
 
 # Start a new Claude Code session and say:
 > recover
-# Lead reads the recovery output and picks up where it left off
+# Lead reads .maw-lead-state.json and picks up where it left off
 ```
 
 ## Hybrid Mode
 
-If [maw-mcp](https://github.com/derekparent/maw-mcp) is configured as an MCP server, the lead uses its `maw_review` tool for richer codebase analysis. Otherwise, the lead runs its own analysis (standalone mode). No configuration needed — auto-detected.
+If [maw-mcp](https://github.com/derekparent/maw-mcp) is configured as an MCP server, the lead uses its `maw_review` tool for richer codebase analysis. Otherwise, standalone analysis. Auto-detected.
 
 ## Project Structure
 
 ```
 maw-native/
 ├── .claude-plugin/plugin.json    # Plugin manifest
-├── agents/                       # 5 agent definitions
-├── skills/maw-orchestration/     # Workflow protocol
+├── agents/                       # 4 specialist agent definitions
+│   ├── maw-implementer.md
+│   ├── maw-tester.md
+│   ├── maw-reviewer.md
+│   └── maw-fixer.md
+├── skills/maw-orchestration/     # Primary orchestration protocol
+├── skills/maw/                   # Alias skill
+├── commands/maw.md               # Command with argument support
 ├── hooks/hooks.json              # PreCompact state persistence
 ├── scripts/                      # Worktree management, recovery
 ├── examples/test-fixture/        # Test project with intentional bugs

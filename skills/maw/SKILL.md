@@ -1,5 +1,5 @@
 ---
-description: Launch a multi-agent workflow to review, fix, and improve the current codebase. Invoke with "/maw-native:maw-orchestration" or when user says "launch maw", "run maw", or wants parallel agents.
+description: Launch a multi-agent workflow to review, fix, and improve the current codebase. Use when user says "/maw", "launch maw", "run maw", or wants parallel agents to fix code.
 ---
 
 # MAW Orchestration Protocol
@@ -27,8 +27,7 @@ SETUP → REVIEW → LAUNCH → INTEGRATE → DECIDE → LEARN → CLEANUP
 ### SETUP
 1. Read the codebase: `Glob` for file tree, `Grep` for patterns, `Read` key files.
 2. Run existing tests to establish a baseline.
-3. Ensure `.maw-lead-state.json` is in `.gitignore` (prevents merge conflicts during INTEGRATE).
-4. Detect hybrid mode: try calling `maw_review` MCP tool. If available, use its analysis. If not, analyze the codebase yourself (standalone mode).
+3. Detect hybrid mode: try calling `maw_review` MCP tool. If available, use its analysis. If not, analyze the codebase yourself (standalone mode).
 
 ### REVIEW
 1. Identify 3-5 improvement areas (bugs, missing tests, code quality, security).
@@ -74,7 +73,7 @@ SETUP → REVIEW → LAUNCH → INTEGRATE → DECIDE → LEARN → CLEANUP
               4. SendMessage to the lead: 'Task complete. <summary>. Tests: <pass/fail>.'"
    )
    ```
-   **Spawn ALL implementation agents in parallel** — include multiple Task calls in a single response. This is critical for performance.
+   **Spawn ALL implementation agents in parallel** — include multiple Task calls in a single response.
 6. Assign tasks: `TaskUpdate` with `owner` for each agent.
 7. Monitor: agents report completion via messages. Wait for all to finish.
 
@@ -82,49 +81,31 @@ For tester/reviewer: spawn AFTER integration, working in the main tree (not work
 
 ### INTEGRATE
 1. Update `.maw-lead-state.json` with phase "INTEGRATE".
-2. Check task outcomes via `TaskList`.
-3. Merge worktree branches into main in dependency order (docs → test infra → tests → backend → frontend):
+2. Merge worktree branches into main (docs → test infra → tests → backend → frontend):
    ```bash
    git merge agent/<branch> --no-edit
    ```
-4. After each merge, run the test suite. If tests fail, stop and diagnose.
-5. If merge conflicts can't be auto-resolved, notify the user via `AskUserQuestion`.
-6. Clean up each worktree after successful merge:
-   ```bash
-   git worktree remove ../maw-wt-impl-<N>
-   git branch -d agent/<branch>
-   ```
-7. After all merges: spawn tester agent, then reviewer agent (they work in the main tree).
+3. After each merge, run the test suite. Stop if tests fail.
+4. Clean up worktrees: `git worktree remove ../maw-wt-impl-<N>`
+5. After all merges: spawn tester agent, then reviewer agent (in main tree).
 
 ### DECIDE
-Evaluate results against the original objectives:
-- **Deploy**: All tasks complete, tests pass, quality good. Recommend deploy.
-- **Iterate**: Some tasks need rework. Go through CLEANUP, then back to REVIEW.
-- **Add features**: Core done, user wants more. CLEANUP, then REVIEW with new scope.
-
-Present recommendation to user with evidence (test counts, files changed, coverage delta).
+Present results to user with evidence. Recommend: deploy, iterate, or add features.
 
 ### LEARN
-Capture what worked and what didn't:
-- Write observations to persistent memory
-- Note: merge order issues, agent performance, task decomposition quality
-- Record patterns for future sessions
+Capture what worked and what didn't to persistent memory.
 
 ### CLEANUP
-Required before any iteration (one team per session):
-1. Send `shutdown_request` to each teammate.
-2. Wait for acknowledgments.
-3. `TeamDelete` to remove the team.
-4. Clean up any remaining worktrees.
-5. If iterating: return to REVIEW.
+1. `shutdown_request` to each teammate.
+2. `TeamDelete` to remove the team.
+3. Remove any remaining worktrees and branches.
 
 ## State Persistence
 
-**MANDATORY**: Write `.maw-lead-state.json` using the `Write` tool at these points:
+**MANDATORY**: Write `.maw-lead-state.json` at these points:
 - Entering LAUNCH (before spawning agents)
 - After each agent completion
 - Entering INTEGRATE
-- Every ~10 turns during long phases
 
 ```json
 {
@@ -139,13 +120,9 @@ Required before any iteration (one team per session):
 }
 ```
 
-After context compaction: re-read `.maw-lead-state.json` and call `TaskList` to reconstruct full context.
-
 ## Cost Awareness
 
-Track approximate turn count (yours + observed agent turns).
-- At **50 total turns**: Notify user — "Checkpoint: ~50 turns. N/M tasks done. Continue?"
-- Then every **25 turns**.
+Track turn count. At **50 turns**, checkpoint with user. Then every **25 turns**.
 
 ## Blocker Handling
 
@@ -153,9 +130,3 @@ When an agent sends `[BLOCKER]`:
 1. Can you resolve with codebase info? → Message them the answer.
 2. Needs user decision? → Use `AskUserQuestion`.
 3. Test failure? → Spawn `maw-native:maw-fixer`.
-
-## Risk Tiering
-
-**Autonomous** (agents decide alone): implementation patterns, naming, refactoring, test structure.
-**Must-ask you (the lead)**: cross-task dependencies, shared state changes, new dependencies.
-**Must-ask user**: security/auth decisions, breaking API changes, architectural shifts, cost continuation.
