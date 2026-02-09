@@ -19,9 +19,9 @@ You will spawn 4 specialist agent types as direct teammates using the `Task` too
 Execute in order. Never skip a phase.
 
 ```
-SETUP → REVIEW → LAUNCH → INTEGRATE → DECIDE → LEARN → CLEANUP
-                   ▲                       │
-                   └───── CLEANUP ◄────────┘ (iterate)
+SETUP → REVIEW → LAUNCH → TEST → INTEGRATE → DECIDE → LEARN → CLEANUP
+                   ▲                              │
+                   └───── CLEANUP ◄───────────────┘ (iterate)
 ```
 
 ### SETUP
@@ -80,10 +80,41 @@ SETUP → REVIEW → LAUNCH → INTEGRATE → DECIDE → LEARN → CLEANUP
 
 For tester/reviewer: spawn AFTER integration, working in the main tree (not worktrees).
 
+### TEST
+**MANDATORY GATE: User tests agent work before any merging.**
+
+When all agents have completed (or critical mass reached):
+1. Update `.maw-lead-state.json` with phase "TEST".
+2. Present a summary of completed work to the user with worktree paths:
+   ```
+   All agents have completed. Here are the worktrees for testing:
+
+   | Agent | Branch | Worktree | Summary |
+   |-------|--------|----------|---------|
+   | impl-1 | agent/1-task | /path/to/maw-wt-impl-1 | <what changed> |
+   | impl-2 | agent/2-task | /path/to/maw-wt-impl-2 | <what changed> |
+
+   To test any branch live:
+     cd /path/to/maw-wt-impl-N
+     <detected dev server command, e.g. "source venv/bin/activate && flask run --port 5001">
+
+   Review each branch, then tell me:
+   - "merge all" — proceed to INTEGRATE
+   - "merge 1,2 skip 3" — partial merge
+   - "fix <N>: <issue>" — I'll send the agent back to fix it
+   ```
+3. **Wait for user approval.** Do NOT merge anything until the user explicitly says to proceed.
+4. If the user requests fixes:
+   - Resume the relevant agent (or spawn maw-fixer) in the same worktree
+   - After fix, return to TEST — present updated summary
+5. Keep worktrees alive during this phase. Do NOT clean them up yet.
+
 ### INTEGRATE
+**Only enter after user approves in TEST phase.**
+
 1. Update `.maw-lead-state.json` with phase "INTEGRATE".
-2. Check task outcomes via `TaskList`.
-3. Merge worktree branches into main in dependency order (docs → test infra → tests → backend → frontend):
+2. Check task outcomes via `TaskList`. Respect any "skip" instructions from TEST phase.
+3. Merge approved worktree branches into main in dependency order (docs → test infra → tests → backend → frontend):
    ```bash
    git merge agent/<branch> --no-edit
    ```
@@ -123,7 +154,8 @@ Required before any iteration (one team per session):
 **MANDATORY**: Write `.maw-lead-state.json` using the `Write` tool at these points:
 - Entering LAUNCH (before spawning agents)
 - After each agent completion
-- Entering INTEGRATE
+- Entering TEST (before presenting worktrees to user)
+- Entering INTEGRATE (after user approves)
 - Every ~10 turns during long phases
 
 ```json
