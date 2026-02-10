@@ -4,7 +4,7 @@ description: >
   Reviews code for quality, security, and best practices. Reads
   implementation and tests, provides structured feedback. Verdict:
   approved or changes-requested.
-model: sonnet
+model: opus
 permissionMode: bypassPermissions
 tools:
   - Read

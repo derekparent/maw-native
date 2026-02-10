@@ -3,7 +3,7 @@ name: maw-fixer
 description: >
   Targeted debugger and fixer. Receives change requests from reviewer,
   implements fixes, re-runs tests. Lightweight agent for iteration loops.
-model: sonnet
+model: opus
 permissionMode: bypassPermissions
 tools:
   - Read

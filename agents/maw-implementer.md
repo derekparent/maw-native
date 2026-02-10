@@ -4,7 +4,7 @@ description: >
   Autonomous code implementer. Writes code until done or blocked.
   Can choose patterns, refactor, fix linting. Stops and messages
   lead if hitting architectural ambiguity or security decisions.
-model: sonnet
+model: opus
 permissionMode: bypassPermissions
 tools:
   - Read

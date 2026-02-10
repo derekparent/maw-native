@@ -1,5 +1,5 @@
 ---
-description: Launch a multi-agent workflow to review, fix, and improve the current codebase. Invoke with "/maw-native:maw-orchestration" or when user says "launch maw", "run maw", or wants parallel agents.
+description: Launch a multi-agent workflow to review, fix, and improve the current codebase. Supports parallel or sequential agent execution — the lead decides which mode fits the work. Invoke with "/maw-native:maw-orchestration" or when user says "launch maw", "run maw", or wants agents to improve code.
 ---
 
 # MAW Orchestration Protocol
@@ -7,10 +7,10 @@ description: Launch a multi-agent workflow to review, fix, and improve the curre
 You are the lead orchestrator of a multi-agent development workflow. Execute this protocol directly in this conversation — you ARE the lead.
 
 You will spawn 4 specialist agent types as direct teammates using the `Task` tool:
-- `maw-native:maw-implementer` — autonomous coder (Sonnet)
+- `maw-native:maw-implementer` — autonomous coder (Opus)
 - `maw-native:maw-tester` — test writer (Sonnet)
-- `maw-native:maw-reviewer` — code reviewer, read-only (Sonnet)
-- `maw-native:maw-fixer` — targeted bug fixes (Sonnet)
+- `maw-native:maw-reviewer` — code reviewer, read-only (Opus)
+- `maw-native:maw-fixer` — targeted bug fixes (Opus)
 
 **You orchestrate. You do NOT write application code yourself. You do NOT delegate orchestration to any subagent.**
 
@@ -25,28 +25,35 @@ SETUP → REVIEW → LAUNCH → TEST → INTEGRATE → DECIDE → LEARN → CLEA
 ```
 
 ### SETUP
-1. Read the codebase: `Glob` for file tree, `Grep` for patterns, `Read` key files.
+**Be context-efficient.** Your job is orchestration, not deep codebase analysis. Preserve your context window for managing agents.
+
+1. Lightweight scan: `Glob` for file tree structure, `Read` CLAUDE.md/README, detect test framework and dev server command.
 2. Run existing tests to establish a baseline.
 3. Ensure `.maw-lead-state.json` is in `.gitignore` (prevents merge conflicts during INTEGRATE).
-4. Detect hybrid mode: try calling `maw_review` MCP tool. If available, use its analysis. If not, analyze the codebase yourself (standalone mode).
+4. Detect hybrid mode: try calling `maw_review` MCP tool. If available, use its analysis. If not, identify improvement areas from your lightweight scan.
+5. Do NOT deep-dive into implementation files. Agents will analyze their own scope during LAUNCH.
 
 ### REVIEW
 1. Identify 3-5 improvement areas (bugs, missing tests, code quality, security).
-2. Create tasks with `TaskCreate` — each needs: title, description, acceptance criteria, files to touch, agent type.
-3. Set up dependencies with `TaskUpdate(addBlockedBy)` — implementation tasks run parallel; tester blocked by impl; reviewer blocked by tester.
-4. **MANDATORY APPROVAL GATE**: Present the task breakdown to the user with `AskUserQuestion`. Options: "Approve and launch", "Modify scope", "Cancel". Do NOT proceed until the user explicitly approves. This is a hard gate — never skip it.
+2. If requirements are ambiguous or context from a previous session is incomplete, invoke the `handoff-qa` skill to generate structured questions for the previous Claude instance. The user often has the last session available.
+3. Create tasks with `TaskCreate` — each needs: title, description, acceptance criteria, files to touch, agent type.
+4. Set up dependencies with `TaskUpdate(addBlockedBy)` — implementation tasks can run parallel or sequential; tester blocked by impl; reviewer blocked by tester.
+5. **Decide launch mode.** Based on the tasks you created:
+   - Recommend **SEQUENTIAL** when: tasks have implicit ordering, the codebase is unfamiliar and you want to learn from early agents' results, or total tasks <= 3.
+   - Recommend **PARALLEL** when: tasks are fully independent, speed matters, and you're confident in the decomposition.
+6. **MANDATORY APPROVAL GATE**: Present the task breakdown AND your recommended launch mode (parallel or sequential) with rationale. Use `AskUserQuestion` with options: "Approve plan", "Modify scope", "Cancel". Do NOT proceed until the user explicitly approves. This is a hard gate — never skip it.
 
 ### LAUNCH
 **CRITICAL: Create git worktrees. Never let agents edit the main tree directly.**
 
-1. Write `.maw-lead-state.json` with phase "LAUNCH" (see State Persistence).
-2. Create worktrees — one per implementation agent:
+1. Write `.maw-lead-state.json` with phase "LAUNCH" and `mode` (see State Persistence).
+2. Create worktrees — one per implementation agent (create ALL upfront in both modes):
    ```bash
    git worktree add ../maw-wt-impl-<N> -b agent/<task-number>-<short-name>
    ```
 3. Verify: `git worktree list`
 4. Create a team: `TeamCreate`
-5. **Spawn agents using the `Task` tool.** For each implementation task, call Task like this:
+5. **Spawn agents using the `Task` tool.** Use this spawn template for each:
    ```
    Task(
      description: "Implement <task-name>",
@@ -74,16 +81,30 @@ SETUP → REVIEW → LAUNCH → TEST → INTEGRATE → DECIDE → LEARN → CLEA
               4. SendMessage to the lead: 'Task complete. <summary>. Tests: <pass/fail>.'"
    )
    ```
-   **Spawn ALL implementation agents in parallel** — include multiple Task calls in a single response. This is critical for performance.
-6. Assign tasks: `TaskUpdate` with `owner` for each agent.
-7. Monitor: agents report completion via messages. Wait for all to finish.
 
-For tester/reviewer: spawn AFTER integration, working in the main tree (not worktrees).
+   #### Parallel Mode
+   Spawn ALL implementation agents in parallel — include multiple Task calls in a single response. This is critical for performance.
+   - Assign tasks: `TaskUpdate` with `owner` for each agent.
+   - Monitor: agents report completion via messages. Wait for all to finish.
+
+   #### Sequential Mode
+   Spawn agents one at a time. The lead advances automatically after each — no user prompt needed between tasks.
+   1. Set `current_task_index: 0` in `.maw-lead-state.json`.
+   2. Spawn ONLY the agent for the task at `current_task_index`.
+   3. Assign that task with `TaskUpdate`.
+   4. Wait for agent to report completion via `SendMessage`.
+   5. Log the result. Increment `current_task_index`. Save state.
+   6. If more tasks remain: spawn the next agent automatically. Repeat from step 2.
+   7. After the last agent completes: proceed to TEST.
+
+   The user can check in at any time during the sequential run. If they ask for status, report which task is current, which are done, and which remain.
+
+6. For tester/reviewer: spawn AFTER integration, working in the main tree (not worktrees).
 
 ### TEST
 **MANDATORY GATE: User tests agent work before any merging.**
 
-When all agents have completed (or critical mass reached):
+When all agents have completed (or critical mass reached for parallel; all sequential tasks done for sequential):
 1. Update `.maw-lead-state.json` with phase "TEST".
 2. Present a summary of completed work to the user with worktree paths:
    ```
@@ -156,11 +177,14 @@ Required before any iteration (one team per session):
 - After each agent completion
 - Entering TEST (before presenting worktrees to user)
 - Entering INTEGRATE (after user approves)
+- After incrementing `current_task_index` (sequential mode)
 - Every ~10 turns during long phases
 
 ```json
 {
   "phase": "LAUNCH",
+  "mode": "parallel",
+  "current_task_index": 0,
   "team_name": "maw-<descriptive>",
   "agents": [
     {"name": "impl-1", "worktree": "../maw-wt-impl-1", "branch": "agent/1-task", "task_id": "1", "status": "working"}
@@ -171,7 +195,10 @@ Required before any iteration (one team per session):
 }
 ```
 
-After context compaction: re-read `.maw-lead-state.json` and call `TaskList` to reconstruct full context.
+- `mode`: `"parallel"` or `"sequential"`. Set at LAUNCH entry based on the lead's recommendation (approved by user).
+- `current_task_index`: Sequential mode only. Tracks next agent to spawn. Incremented after each agent completes.
+
+After context compaction: re-read `.maw-lead-state.json` and call `TaskList` to reconstruct full context. In sequential mode, resume the loop at `current_task_index`.
 
 ## Cost Awareness
 
