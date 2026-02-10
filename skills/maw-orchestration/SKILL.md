@@ -61,6 +61,7 @@ SETUP → REVIEW → LAUNCH → TEST → INTEGRATE → DECIDE → LEARN → CLEA
      name: "impl-1",
      team_name: "<your-team-name>",
      mode: "bypassPermissions",
+     model: "opus",
      prompt: "You are impl-1 in team <team-name>.
               Your working directory is /absolute/path/to/maw-wt-impl-1.
               Run ALL commands from that directory. Do NOT modify files outside your worktree.
@@ -98,6 +99,12 @@ SETUP → REVIEW → LAUNCH → TEST → INTEGRATE → DECIDE → LEARN → CLEA
    7. After the last agent completes: proceed to TEST.
 
    The user can check in at any time during the sequential run. If they ask for status, report which task is current, which are done, and which remain.
+
+   **Model selection per agent type** (must be explicit in Task() — frontmatter `model` is metadata only):
+   - `maw-native:maw-implementer` → `model: "opus"`
+   - `maw-native:maw-fixer` → `model: "opus"`
+   - `maw-native:maw-reviewer` → `model: "opus"`
+   - `maw-native:maw-tester` → `model: "sonnet"`
 
 6. For tester/reviewer: spawn AFTER integration, working in the main tree (not worktrees).
 

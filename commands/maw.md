@@ -58,6 +58,7 @@ Execute in order. Never skip a phase.
      name: "impl-1",
      team_name: "<your-team-name>",
      mode: "bypassPermissions",
+     model: "opus",
      prompt: "You are impl-1 in team <team-name>.
               Your working directory is /absolute/path/to/maw-wt-impl-1.
               Run ALL commands from that directory.
@@ -73,6 +74,8 @@ Execute in order. Never skip a phase.
 
    #### Sequential Mode
    Spawn one agent at a time. After each completes, log result, increment `current_task_index` in state, spawn next automatically.
+
+   **Model selection** (must be explicit in Task()): implementer/fixer/reviewer → `model: "opus"` | tester → `model: "sonnet"`
 
 6. Assign tasks: `TaskUpdate` with `owner` for each agent.
 7. Monitor: wait for agents to report completion.

@@ -57,6 +57,7 @@ SETUP → REVIEW → LAUNCH → INTEGRATE → DECIDE → LEARN → CLEANUP
      name: "impl-1",
      team_name: "<your-team-name>",
      mode: "bypassPermissions",
+     model: "opus",
      prompt: "You are impl-1 in team <team-name>.
               Your working directory is /absolute/path/to/maw-wt-impl-1.
               Run ALL commands from that directory. Do NOT modify files outside your worktree.
@@ -82,6 +83,9 @@ SETUP → REVIEW → LAUNCH → INTEGRATE → DECIDE → LEARN → CLEANUP
 
    #### Sequential Mode
    Spawn one agent at a time. After each completes, log the result, increment `current_task_index` in `.maw-lead-state.json`, and spawn the next automatically. No user prompt needed between tasks.
+
+   **Model selection** (must be explicit in Task() — frontmatter `model` is metadata only):
+   implementer/fixer/reviewer → `model: "opus"` | tester → `model: "sonnet"`
 
 6. Assign tasks: `TaskUpdate` with `owner` for each agent.
 7. Monitor: agents report completion via messages (all at once for parallel; one by one for sequential).
