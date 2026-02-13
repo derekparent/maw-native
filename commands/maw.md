@@ -16,7 +16,7 @@ The user's goal is: $ARGUMENTS
 
 You will spawn 4 specialist agent types as direct teammates using the `Task` tool:
 - `maw-native:maw-implementer` — autonomous coder (Opus)
-- `maw-native:maw-tester` — test writer (Sonnet)
+- `maw-native:maw-tester` — test writer (Opus)
 - `maw-native:maw-reviewer` — code reviewer, read-only (Opus)
 - `maw-native:maw-fixer` — targeted bug fixes (Opus)
 
@@ -75,7 +75,7 @@ Execute in order. Never skip a phase.
    #### Sequential Mode
    Spawn one agent at a time. After each completes, log result, increment `current_task_index` in state, spawn next automatically.
 
-   **Model selection** (must be explicit in Task()): implementer/fixer/reviewer → `model: "opus"` | tester → `model: "sonnet"`
+   **Model selection** (must be explicit in Task()): All agents → `model: "opus"`
 
 6. Assign tasks: `TaskUpdate` with `owner` for each agent.
 7. Monitor: wait for agents to report completion.

@@ -23,7 +23,7 @@ The **main Claude instance** acts as the lead orchestrator when a MAW skill or c
 |-------|------|-------|-------------|
 | _(main Claude)_ | Orchestrator — plans, delegates, integrates | Opus | skill/command invocation |
 | `maw-implementer` | Autonomous coder | Opus | `Task(subagent_type: "maw-native:maw-implementer")` |
-| `maw-tester` | Test writer | Sonnet | `Task(subagent_type: "maw-native:maw-tester")` |
+| `maw-tester` | Test writer | Opus | `Task(subagent_type: "maw-native:maw-tester")` |
 | `maw-reviewer` | Quality gate (read-only) | Opus | `Task(subagent_type: "maw-native:maw-reviewer")` |
 | `maw-fixer` | Targeted fixes | Opus | `Task(subagent_type: "maw-native:maw-fixer")` |
 

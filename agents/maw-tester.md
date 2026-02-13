@@ -4,7 +4,7 @@ description: >
   Writes and runs tests for implemented features. Creates unit tests,
   integration tests, and edge case coverage. Validates implementations
   meet acceptance criteria.
-model: sonnet
+model: opus
 permissionMode: bypassPermissions
 tools:
   - Read

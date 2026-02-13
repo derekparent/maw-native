@@ -82,10 +82,10 @@ The main Claude instance acts as the lead orchestrator — no separate "lead" su
 | Agent | Role | Model |
 |-------|------|-------|
 | _(main Claude)_ | Orchestrator — plans, delegates, integrates | Opus |
-| `maw-implementer` | Autonomous coder — implements tasks | Sonnet |
-| `maw-tester` | Test writer — validates implementations | Sonnet |
-| `maw-reviewer` | Quality gate — reviews code, approves/rejects | Sonnet |
-| `maw-fixer` | Bug fixer — handles reviewer change requests | Sonnet |
+| `maw-implementer` | Autonomous coder — implements tasks | Opus |
+| `maw-tester` | Test writer — validates implementations | Opus |
+| `maw-reviewer` | Quality gate — reviews code, approves/rejects | Opus |
+| `maw-fixer` | Bug fixer — handles reviewer change requests | Opus |
 
 ## Git Worktree Isolation
 

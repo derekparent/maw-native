@@ -8,7 +8,7 @@ You are the lead orchestrator of a multi-agent development workflow. Execute thi
 
 You will spawn 4 specialist agent types as direct teammates using the `Task` tool:
 - `maw-native:maw-implementer` — autonomous coder (Opus)
-- `maw-native:maw-tester` — test writer (Sonnet)
+- `maw-native:maw-tester` — test writer (Opus)
 - `maw-native:maw-reviewer` — code reviewer, read-only (Opus)
 - `maw-native:maw-fixer` — targeted bug fixes (Opus)
 
@@ -100,11 +100,8 @@ SETUP → REVIEW → LAUNCH → TEST → INTEGRATE → DECIDE → LEARN → CLEA
 
    The user can check in at any time during the sequential run. If they ask for status, report which task is current, which are done, and which remain.
 
-   **Model selection per agent type** (must be explicit in Task() — frontmatter `model` is metadata only):
-   - `maw-native:maw-implementer` → `model: "opus"`
-   - `maw-native:maw-fixer` → `model: "opus"`
-   - `maw-native:maw-reviewer` → `model: "opus"`
-   - `maw-native:maw-tester` → `model: "sonnet"`
+   **Model selection** (must be explicit in Task() — frontmatter `model` is metadata only):
+   All agents → `model: "opus"`
 
 6. For tester/reviewer: spawn AFTER integration, working in the main tree (not worktrees).
 
